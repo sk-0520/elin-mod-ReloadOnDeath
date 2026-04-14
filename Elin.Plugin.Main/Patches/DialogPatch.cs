@@ -17,7 +17,11 @@ namespace Elin.Plugin.Main.Patches
             ModHelper.LogDev("InputNamePrefix");
             if (langDetail == "dialogLastword")
             {
+                if (!EMono.game.principal.permadeath)
+                {
+                    // 通常ﾓｰﾄﾞ, i-mode!
 
+                }
             }
 
             return true;
