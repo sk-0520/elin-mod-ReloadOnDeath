@@ -15,6 +15,11 @@ namespace Elin.Plugin.Main.Patches
         public static bool InputNamePrefix(string langDetail, string text, Action<bool, string> onClose, Dialog.InputType inputType)
         {
             ModHelper.LogDev("InputNamePrefix");
+            if (langDetail == "dialogLastword")
+            {
+
+            }
+
             return true;
         }
 
