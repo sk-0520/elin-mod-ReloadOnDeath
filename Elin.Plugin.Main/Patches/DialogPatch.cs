@@ -1,11 +1,9 @@
 using Elin.Plugin.Main.Models.Impl;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 
 namespace Elin.Plugin.Main.Patches
 {
-    [HarmonyPatch(typeof(Dialog))]
     public static class DialogPatch
     {
         #region function
