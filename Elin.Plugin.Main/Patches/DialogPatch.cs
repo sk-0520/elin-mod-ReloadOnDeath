@@ -1,4 +1,4 @@
-using Elin.Plugin.Main.PluginHelpers;
+using Elin.Plugin.Main.Models.Impl;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -10,27 +10,10 @@ namespace Elin.Plugin.Main.Patches
     {
         #region function
 
-        [HarmonyPatch(nameof(Dialog.InputName), new[] { typeof(string), typeof(string), typeof(Action<bool, string>), typeof(Dialog.InputType) })]
-        [HarmonyPrefix]
-        public static bool InputNamePrefix(string langDetail, string text, Action<bool, string> onClose, Dialog.InputType inputType)
+        public static bool ListPrefix(string langDetail, ref ICollection<string> items, Func<string, string> getString, ref Func<int, string, bool> onSelect, bool canCancel)
         {
-            ModHelper.LogDev("InputNamePrefix");
-            if (langDetail == "dialogLastword")
-            {
-                if (!EMono.game.principal.permadeath)
-                {
-                    // 通常ﾓｰﾄﾞ, i-mode!
-
-                }
-            }
-
-            return true;
-        }
-
-        public static bool ListPrefix(string langDetail, ICollection<string> items, Func<string, string> getString, Func<int, string, bool> onSelect, bool canCancel)
-        {
-            ModHelper.LogDev("ListPrefix");
-            return true;
+            var callOrigin = DialogImpl.ListPrefix(langDetail, ref items, getString, ref onSelect, canCancel);
+            return callOrigin;
         }
 
         #endregion
