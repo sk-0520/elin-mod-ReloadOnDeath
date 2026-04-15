@@ -1,21 +1,31 @@
 {
   "$schema": "./dev-items/Plugin.schema.json",
   "package": {
-    "title": "ユーザーに表示される Mod 名",
-    "id": "replace.with.your.mod.id",
+    "title": "ReloadOnDeath",
+    "id": "sk.reloadondeath",
     "author": "作者",
     "loadPriority": 100,
     "elinVersion": "0.23.295",
     "description": [
-      "説明1行目",
-      "説明2行目"
+      "どうせ君は死んだときにやり直す",
+      "",
+      "[JP] 死亡時にクイックロード選択肢を追加します",
+      "[EN] Adds a quick load option on death",
+      "[CN] 死亡时添加快捷读档选项",
+      "",
+      "[今後やりたいこと]",
+      "死亡時のログ内容確認できるようにしておきたいなぁ",
+      "",
+      "---",
+      "https://github.com/sk-0520/elin-mod-ReloadOnDeath"
     ],
     "tags": [
-      "General"
+      "General",
+      "QoL"
     ]
   },
   "mod": {
-    "version": "0.0.0",
+    "version": "1.0.0",
     "useDebugId": true,
     "log": "NUL"
   }
