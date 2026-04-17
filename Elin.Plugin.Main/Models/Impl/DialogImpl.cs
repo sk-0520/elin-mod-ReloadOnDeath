@@ -14,7 +14,6 @@ namespace Elin.Plugin.Main.Models.Impl
 
         public static bool ListPrefix(string langDetail, ref ICollection<string> items, Func<string, string> getString, ref Func<int, string, bool> onSelect, bool canCancel)
         {
-            ModHelper.LogDev("ListPrefix");
             // すでにローカライズされているので判定側もローカライズ文字列を使用する必要あり
             if (langDetail != "pc_deathChoice".lang())
             {
@@ -38,9 +37,9 @@ namespace Elin.Plugin.Main.Models.Impl
             }
 
             // 選択リストと選択後処理への介入
-            ModHelper.LogDev("うおおおお");
 
             // [ELIN:Scene.OnUpdate]
+            // -> List<string> list2 = new List<string>()
             // 何が起きるのか分からんので型を合わせておく
             var list = new List<string>(items.Count + 1)
             {
@@ -58,7 +57,11 @@ namespace Elin.Plugin.Main.Models.Impl
 
                 if (index == 0)
                 {
-                    ModHelper.LogDev("うおおおおおおおおおおおおおおおおおお");
+                    // [ELIN:Scene.OnUpdate]
+                    // -> Dialog.List("pc_deathChoice".lang(), list2, (string j) => j, delegate(int c, string d)
+                    // -> -> EMono.player.deathDialog = false;
+                    // ↑
+                    // 一見これを実行しないとダメっぽく思えるが、いざやってみると状態がワケわからんことになるので下記の Game.TryLoad を信じて何もしない
 
                     // [ELIN:AM_Adv._OnUpdateInput]
                     // -> case EAction.QuickLoad:
@@ -67,6 +70,8 @@ namespace Elin.Plugin.Main.Models.Impl
                     bool isCloud = EClass.game.isCloud;
                     Game.TryLoad(slot, isCloud, delegate
                     {
+                        Plugin.Instance.MessageRecorder?.FinishRecording();
+
                         EClass.core.WaitForEndOfFrame(delegate
                         {
                             EClass.scene.Init(Scene.Mode.None);

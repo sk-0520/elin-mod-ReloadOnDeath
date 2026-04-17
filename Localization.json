@@ -5,8 +5,28 @@
       "JP": "クイックロード",
       "EN": "Quick Load",
       "CN": "快捷读档"
+    },
+    "previousLogRangeStart": {
+      "JP": "ここから >>>>",
+      "EN": "Start >>>>",
+      "CN": "从这里开始 >>>>"
+    },
+    "previousLogRangeEnd": {
+      "JP": "ここまで <<<<",
+      "EN": "End <<<<",
+      "CN": "到这里结束 <<<<"
     }
   },
   "format": {
+    "previousLog": {
+      "JP": "無かったことにした世界での出来事: ${RANGE}",
+      "EN": "Events from the world you erased: ${RANGE}",
+      "CN": "你抹去的世界中的事件: ${RANGE}",
+      "parameters": {
+        "RANGE": {
+          "type": "string"
+        }
+      }
+    }
   }
 }

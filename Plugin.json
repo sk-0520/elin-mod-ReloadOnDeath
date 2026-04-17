@@ -3,7 +3,7 @@
   "package": {
     "title": "ReloadOnDeath",
     "id": "sk.reloadondeath",
-    "author": "作者",
+    "author": "sk",
     "loadPriority": 100,
     "elinVersion": "0.23.295",
     "description": [
@@ -25,7 +25,7 @@
     ]
   },
   "mod": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "useDebugId": true,
     "log": "NUL"
   }

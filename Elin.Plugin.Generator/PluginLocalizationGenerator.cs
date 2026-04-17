@@ -81,6 +81,20 @@ namespace Elin.Plugin.Generator
             );
         }
 
+        private string ToCharacterReference(string s)
+        {
+            // 完全に忘れておった
+            // あとでテンプレ側にちゃんとした実装を行う必要あり
+
+            return s
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;")
+                .Replace("'", "&apos;")
+            ;
+        }
+
         private IEnumerable<string> ToRawXmlComments(LocalizationItem item)
         {
             return new[] {
@@ -90,7 +104,7 @@ namespace Elin.Plugin.Generator
                 "<description>翻訳</description>",
                 "</listheader>",
             }.Concat(item.Languages
-                .Select(a => $"<item><term>{a.Key}</term><description>{a.Value}</description></item>")
+                .Select(a => $"<item><term>{a.Key}</term><description>{ToCharacterReference(a.Value ?? string.Empty)}</description></item>")
             ).Concat(new[] {
                  "</list>",
             });

@@ -1,3 +1,5 @@
+using Elin.Plugin.Main.Models;
+using Elin.Plugin.Main.Models.Settings;
 using Elin.Plugin.Main.Patches;
 using Elin.Plugin.Main.PluginHelpers;
 using HarmonyLib;
@@ -8,6 +10,14 @@ namespace Elin.Plugin.Main
 {
     partial class Plugin
     {
+        #region property
+
+        public static Plugin Instance { get; private set; } = default!;
+
+        public MessageRecorder? MessageRecorder { get; private set; } = default;
+
+        #endregion
+
         #region function
 
         /// <summary>
@@ -16,6 +26,8 @@ namespace Elin.Plugin.Main
         /// <param name="harmony"></param>
         private void AwakePlugin(Harmony harmony)
         {
+            var setting = Setting.Bind(Config, new Setting());
+
             var listMethod = typeof(Dialog)
                 .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
                 .FirstOrDefault(m => m.Name == nameof(Dialog.List) && m.IsGenericMethodDefinition)
@@ -27,6 +39,21 @@ namespace Elin.Plugin.Main
 
                 var prefix = new HarmonyMethod(typeof(DialogPatch), nameof(DialogPatch.ListPrefix));
                 harmony.Patch(target, prefix: prefix);
+
+                Instance = this;
+                if (0 < setting.RecordCount)
+                {
+                    ModHelper.LogDev("patch enable");
+                    MessageRecorder = new MessageRecorder(setting.RecordCount);
+                }
+                else
+                {
+                    ModHelper.LogDev("patch disable");
+                    ModHelper.Logger.LogInfo($"{nameof(setting.RecordCount)}: {setting.RecordCount}");
+                    // メッセージを取得しないのであればパッチ適用不要
+                    // メモリ節約のための設定なので起動時のみの判定で良い
+                    CallPatchAll = false;
+                }
             }
             else
             {
