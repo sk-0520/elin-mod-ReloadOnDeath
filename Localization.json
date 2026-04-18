@@ -1,24 +1,24 @@
 {
-  "$schema": "./dev-items/localization.schema.json",
+  "$schema": "./dev-items/Localization.schema.json",
   "general": {
-    "quickLoad": {
+    "QuickLoad": {
       "JP": "クイックロード",
       "EN": "Quick Load",
       "CN": "快捷读档"
     },
-    "previousLogRangeStart": {
+    "PreviousLogRangeStart": {
       "JP": "ここから >>>>",
       "EN": "Start >>>>",
       "CN": "从这里开始 >>>>"
     },
-    "previousLogRangeEnd": {
+    "PreviousLogRangeEnd": {
       "JP": "ここまで <<<<",
       "EN": "End <<<<",
       "CN": "到这里结束 <<<<"
     }
   },
   "format": {
-    "previousLog": {
+    "PreviousLog": {
       "JP": "無かったことにした世界での出来事: ${RANGE}",
       "EN": "Events from the world you erased: ${RANGE}",
       "CN": "你抹去的世界中的事件: ${RANGE}",
