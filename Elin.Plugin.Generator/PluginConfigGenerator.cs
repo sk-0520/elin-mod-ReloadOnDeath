@@ -1,23 +1,17 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Xml.Linq;
 
 namespace Elin.Plugin.Generator
 {
     [Generator(LanguageNames.CSharp)]
     internal class PluginConfigGenerator : IIncrementalGenerator
     {
-        #region property
-
-        private HashSet<string> GeneratedClassNames { get; } = new HashSet<string>();
-
-        #endregion
-
         #region function
 
         private bool IsConfigTarget(ISymbol symbol)
@@ -132,85 +126,6 @@ namespace Elin.Plugin.Generator
             return $"Create{ToEntriesClassName(symbol)}";
         }
 
-        private List<string> ExpandDocumentCommentCore(XElement element)
-        {
-            var result = new List<string>();
-
-            foreach (var node in element.Nodes())
-            {
-                if (node.NodeType == System.Xml.XmlNodeType.Text)
-                {
-                    var textNode = (XText)node;
-                    result.Add(textNode.Value.Trim());
-                }
-                else if (node.NodeType == System.Xml.XmlNodeType.Element)
-                {
-                    var childElement = (XElement)node;
-
-                    if (childElement.Name == "see")
-                    {
-                        var cref = childElement.Attribute("cref")!.Value;
-                        var index = cref.LastIndexOf('.');
-                        var value = index == -1 ? cref : cref.Substring(index + 1);
-                        result.Add(value);
-                    }
-                    else if (childElement.Name == "para")
-                    {
-                        result.Add(Environment.NewLine);
-                        var results = ExpandDocumentCommentCore(childElement);
-                        result.AddRange(results);
-                    }
-                    else
-                    {
-                        var results = ExpandDocumentCommentCore(childElement);
-                        result.AddRange(results);
-                    }
-                }
-                else
-                {
-                    result.Add(node.ToString());
-                }
-            }
-
-            return result;
-        }
-
-        private string? ExpandDocumentComment(XElement? element)
-        {
-            if (element is null)
-            {
-                return null;
-            }
-
-            return string.Join(
-                string.Empty,
-                ExpandDocumentCommentCore(element)
-            );
-        }
-
-        private string? GetDocumentComment(ISymbol symbol)
-        {
-            var xmlComment = symbol.GetDocumentationCommentXml(expandIncludes: true);
-
-            if (!string.IsNullOrWhiteSpace(xmlComment))
-            {
-                var doc = XDocument.Parse(xmlComment);
-                var items = new[]
-                {
-                    ExpandDocumentComment(doc.Root!.Element("summary")),
-                    ExpandDocumentComment(doc.Root!.Element("remarks")),
-                };
-                return string.Join(
-                    Environment.NewLine,
-                    items
-                        .Where(a => !string.IsNullOrEmpty(a))
-                        .Select(a => a!.Trim())
-                );
-            }
-
-            return xmlComment!;
-        }
-
         private string? GetAcceptableValue(SourceProductionContext context, Compilation compilation, SourceBuilder sourceBuilder, IPropertySymbol symbol)
         {
             var attributes = symbol.GetAttributes();
@@ -281,7 +196,7 @@ namespace Elin.Plugin.Generator
             {
                 return $$"""
 
-                public ConfigEntry<{{symbol.Type.ToDisplayString()}}> {{symbol.Name}} { get; set; }
+                public ConfigEntry<{{symbol.Type.ToDisplayString()}}> {{symbol.Name}} { get; set; } = default!;
                 
                 """;
             }
@@ -311,6 +226,8 @@ namespace Elin.Plugin.Generator
         {
             foreach (var property in properties)
             {
+                context.CancellationToken.ThrowIfCancellationRequested();
+
                 if (property.IsVirtual)
                 {
                     if (property.Type.TypeKind == TypeKind.Class && property.Type.SpecialType != SpecialType.System_String)
@@ -402,20 +319,24 @@ namespace Elin.Plugin.Generator
             return source;
         }
 
-        private IEnumerable<(string source, string fileName)> GenerateConfigSources(SourceProductionContext context, SourceBuilder sourceBuilder, INamedTypeSymbol targetSymbol, bool overrideReset)
+        private IEnumerable<(string source, string fileName)> GenerateConfigSources(SourceProductionContext context, SourceBuilder sourceBuilder, INamedTypeSymbol targetSymbol, bool overrideReset, HashSet<string> generatedClassNames)
         {
-            if (GeneratedClassNames.Contains(targetSymbol.ToDisplayString()))
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            if (generatedClassNames.Contains(targetSymbol.ToDisplayString()))
             {
                 yield break;
             }
-            GeneratedClassNames.Add(targetSymbol.ToDisplayString());
+            generatedClassNames.Add(targetSymbol.ToDisplayString());
 
             var properties = GetProperties(targetSymbol).ToArray();
             var nestedProperties = GetNestedProperties(properties);
 
             foreach (var nestedProperty in nestedProperties)
             {
-                foreach (var configSource in GenerateConfigSources(context, sourceBuilder, (INamedTypeSymbol)nestedProperty.Type, false))
+                context.CancellationToken.ThrowIfCancellationRequested();
+
+                foreach (var configSource in GenerateConfigSources(context, sourceBuilder, (INamedTypeSymbol)nestedProperty.Type, false, generatedClassNames))
                 {
                     yield return configSource;
                 }
@@ -425,6 +346,33 @@ namespace Elin.Plugin.Generator
 
             var source = GenerateConfigSource(context, sourceBuilder, targetSymbol, properties, overrideReset);
             yield return (source, sourceFileName);
+        }
+
+        private static string GetDocumentCommentFromAttribute(AttributeData attribute)
+        {
+            var args = attribute.ConstructorArguments;
+
+            var langProperty = args.Length == 2 && (int)(args[1].Value!) == 1 /* PluginConfigDescriptionTarget.General */
+                ? "General"
+                : "Config"
+            ;
+            var targetProperty = (string)args[0].Value!;
+
+            var allLang = attribute.NamedArguments.FirstOrDefault(a => a.Key == "AllLanguage").Value;
+            if (allLang.Value is true)
+            {
+                return $$"""
+                string.Join(
+                    Environment.NewLine,
+                    global::Elin.Plugin.Main.PluginHelpers.ModHelper.Lang.{{langProperty}}
+                        .Items["{{targetProperty}}"]
+                        .GetLanguages()
+                        .Select(a => $"[{a.Key}] {a.Value}")
+                )
+                """;
+            }
+
+            return $"global::Elin.Plugin.Main.PluginHelpers.ModHelper.Lang.{langProperty}.{targetProperty}";
         }
 
         private IEnumerable<string> GenerateBindSources(SourceProductionContext context, Compilation compilation, SourceBuilder sourceBuilder, string parentSection, INamedTypeSymbol typeSymbol, IPropertySymbol? propertySymbol)
@@ -450,35 +398,42 @@ namespace Elin.Plugin.Generator
 
             private static {{ToEntriesClassName(typeSymbol)}} {{ToEntriesCreateMethodName(typeSymbol)}}{{propertySymbol?.Name}}(ConfigFile config, {{typeSymbol.Name}} defaultValue)
             {
-                var entries = new {{ToEntriesClassName(typeSymbol)}}();
+                var entries = new {{ToEntriesClassName(typeSymbol)}}() {
+                    {{sourceBuilder.JoinLines(
+                        properties
+                            .Where(a => IsProxyTarget(a))
+                            .Select(a =>
+                            {
+                                var acceptableValue = GetAcceptableValue(context, compilation, sourceBuilder, a);
+                                var attr = a.GetAttributes().FirstOrDefault(attr => attr.AttributeClass!.ToDisplayString() == $"{GeneratorConstants.GeneratedNamespace}.{GeneratorConstants.GeneratePluginConfigDescriptionAttributeName}");
+
+                                return $$"""
+
+                                {{a.Name}} = config.Bind(
+                                    {{sourceBuilder.ToStringLiteral(sectionName)}},
+                                    {{sourceBuilder.ToStringLiteral(a.Name)}},
+                                    defaultValue.{{a.Name}},
+                                    new ConfigDescription(
+                                        {{(attr is null
+                                            ? sourceBuilder.EmptyStringLiteral
+                                            : GetDocumentCommentFromAttribute(attr)
+                                        )}},
+                                        {{acceptableValue ?? "null"}}
+                                    )
+                                ),
+
+                                """;
+                            })
+                    )}}
+                };
 
                 {{sourceBuilder.JoinLines(
-                    properties.Select(a =>
-                    {
-                        if (IsProxyTarget(a))
-                        {
-                            var documentComment = GetDocumentComment(a);
-                            var acceptableValue = GetAcceptableValue(context, compilation, sourceBuilder, a);
-
-                            return $$"""
-
-                            entries.{{a.Name}} = config.Bind(
-                                {{sourceBuilder.ToStringLiteral(sectionName)}},
-                                {{sourceBuilder.ToStringLiteral(a.Name)}},
-                                defaultValue.{{a.Name}},
-                                new ConfigDescription(
-                                    {{sourceBuilder.ToStringLiteral(documentComment ?? string.Empty)}},
-                                    {{acceptableValue ?? "null"}}
-                                )
-                            );
-
-                            """;
-                        }
-                        else
+                    properties
+                        .Where(a => !IsProxyTarget(a))
+                        .Select(a =>
                         {
                             return $"entries.{a.Name} = {ToEntriesCreateMethodName(a.Type)}{a.Name}(config, defaultValue.{a.Name});";
-                        }
-                    })
+                        })
                 )}}
 
                 return entries;
@@ -495,10 +450,14 @@ namespace Elin.Plugin.Generator
 
             var source = $$"""
             {{sourceBuilder.Header}}
-            {{sourceBuilder.ToNamespaceCode(targetSymbol)}}
-
+            
+            using System;
+            using System.Linq;
             using BepInEx.Configuration;
 
+            {{sourceBuilder.ToNamespaceCode(targetSymbol)}}
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1852: 型'{{targetSymbol.Name}}' に含まれるアセンブリにはサブタイプがなく、外部から参照できないため、シールできます", Justification = "クラスを生やすので無視無視")]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1515: パブリック型を内部にすることを検討してください", Justification = "いやべつに。。。")]
             partial class {{targetSymbol.Name}}
             {
                 {{sourceBuilder.JoinLines(bindSources)}}
@@ -533,9 +492,13 @@ namespace Elin.Plugin.Generator
 
         private void GenerateSource(SourceProductionContext context, ImmutableArray<GeneratorAttributeSyntaxContext> array)
         {
+            var generatedClassNames = new HashSet<string>();
+
             var sourceBuilder = new SourceBuilder();
             foreach (var attribute in array)
             {
+                context.CancellationToken.ThrowIfCancellationRequested();
+
                 var compilation = attribute.SemanticModel.Compilation;
                 var targetSymbol = (INamedTypeSymbol)attribute.TargetSymbol;
 
@@ -551,7 +514,7 @@ namespace Elin.Plugin.Generator
                     continue;
                 }
 
-                var configSources = GenerateConfigSources(context, sourceBuilder, targetSymbol, true);
+                var configSources = GenerateConfigSources(context, sourceBuilder, targetSymbol, true, generatedClassNames);
                 foreach (var configSource in configSources)
                 {
                     context.AddSource(configSource.fileName, sourceBuilder.Format(configSource.source));
@@ -594,12 +557,11 @@ namespace Elin.Plugin.Generator
             {
                 var attributeSource = $$"""
                 {{sourceBuilder.Header}}
-
                 namespace {{GeneratorConstants.GeneratedNamespace}};
 
                 {{sourceBuilder.ApplyXmlDocumentComment(
                     string.Empty,
-                    // lang=xml
+                    //lang=xml
                     """
                     <summary>
                     Mod の設定クラスのルートに付与する属性。
@@ -657,7 +619,7 @@ namespace Elin.Plugin.Generator
 
                 {{sourceBuilder.ApplyXmlDocumentComment(
                     string.Empty,
-                    // lang=xml
+                    //lang=xml
                     """
                     <summary>
                     設定クラス内のプロパティを設定構築から除外する属性。
@@ -702,6 +664,35 @@ namespace Elin.Plugin.Generator
                     })
                 )}}
 
+                internal enum PluginConfigDescriptionTarget
+                {
+                    Config = 0,
+                    General = 1,
+                }
+
+                [{{sourceBuilder.ToCode<System.AttributeUsageAttribute>()}}({{sourceBuilder.ToCode(AttributeTargets.Property)}}, AllowMultiple = false)]
+                internal sealed class {{GeneratorConstants.GeneratePluginConfigDescriptionAttributeName}}: {{sourceBuilder.ToCode<System.Attribute>()}}
+                {
+                    public {{GeneratorConstants.GeneratePluginConfigDescriptionAttributeName}}(string propertyName, PluginConfigDescriptionTarget target)
+                    {
+                        //NOP
+                    }
+
+                    public {{GeneratorConstants.GeneratePluginConfigDescriptionAttributeName}}(string configName)
+                    {
+                        //NOP
+                    }
+
+                    #region property
+
+                    /// <summary>
+                    /// 全部の言語を出力対象にする。
+                    /// </summary>
+                    public bool AllLanguage { get; set; }
+
+                    #endregion
+                }
+
                 """;
 
                 initContext.AddSource($"Attributes.g.cs", sourceBuilder.Format(attributeSource));
@@ -709,8 +700,8 @@ namespace Elin.Plugin.Generator
 
             var provider = context.SyntaxProvider.ForAttributeWithMetadataName(
                 $"{GeneratorConstants.GeneratedNamespace}.{GeneratorConstants.GeneratePluginConfigAttributeName}",
-                (node, cancellationToken) => true,
-                (context, cancellationToken) => context
+                static (node, cancellationToken) => node is ClassDeclarationSyntax,
+                static (context, cancellationToken) => context
             ).Collect();
 
             context.RegisterSourceOutput(provider, GenerateSource);

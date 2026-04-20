@@ -84,8 +84,8 @@ namespace Elin.Plugin.Generator
         IXmlDocumentNode GenerateLanguageSamples(XmlNodeGenerator generator, LocalizationItem item)
         {
             return generator.Table(
-                new KeyValuePair<string, string>("言語", "翻訳"),
-                item.Languages.Select(a => new KeyValuePair<string, string>(a.Key, a.Value ?? string.Empty))
+                new KeyValuePair<string, string>(Properties.Resources.DocLangTransLanguage, Properties.Resources.DocLangTransTranslation),
+                item.Languages.Select(a => new KeyValuePair<string, string>(a.Key, a.Value ?? Properties.Resources.DocLangTransUndefined))
             );
         }
 
@@ -161,22 +161,10 @@ namespace Elin.Plugin.Generator
             // 実装メモ: Elin 側で言語周りの調整してくれると思ってたんだが、
             // Lang/ の扱いとか実装見てるとなんかそうでもなさそうだったので作成
 
-            var define = context.AdditionalTextsProvider
-                .Where(file => Path.GetFileName(file.Path) == GeneratorConstants.LocalizeFileName)
-                .Select((file, _) => file.GetText()?.ToString())
-                .Where(a => a != null)
-                .Select((text, _) =>
-                {
-                    return System.Text.Json.JsonSerializer.Deserialize<LocalizationDefine>(text!, new System.Text.Json.JsonSerializerOptions()
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        AllowTrailingCommas = true,
-                        ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
-                    });
-                })
-                .Collect()
-                .Select((list, _) => list.FirstOrDefault())
-            ;
+            var define = SourceGeneratorHelper.CollectJsonClass<LocalizationDefine>(
+                context.AdditionalTextsProvider,
+                file => Path.GetFileName(file.Path) == GeneratorConstants.LocalizeFileName
+            );
 
             context.RegisterSourceOutput(define, (c, define) =>
             {
@@ -191,11 +179,11 @@ namespace Elin.Plugin.Generator
                 //lang=c#
                 var source = $$"""
                 {{sourceBuilder.Header}}
-                #nullable enable
 
                 using System;
                 using System.IO;
                 using System.Text;
+                using System.Linq;
                 using System.Xml.Serialization;
                 using System.Collections.Generic;
                 using System.Text.RegularExpressions;
@@ -266,6 +254,17 @@ namespace Elin.Plugin.Generator
                         }
                 
                         return data;
+                    }
+
+                    public IEnumerable<KeyValuePair<string, string>> GetLanguages()
+                    {
+                        return new [] {
+                            {{sourceBuilder.JoinLines(templateLocalizationItem.Languages
+                                .Select(a => $"new KeyValuePair<string, string?>({sourceBuilder.ToStringLiteral(a.Key)}, {a.Key}),"))}}
+                        }
+                            .Where(a => !string.IsNullOrEmpty(a.Value))
+                            .Select(a => new KeyValuePair<string, string>(a.Key, a.Value!))
+                        ;
                     }
 
                     #endregion
@@ -412,6 +411,7 @@ namespace Elin.Plugin.Generator
                         """;
                     }
                 )}}
+                {{GeneratePluginLocalizationGroup(sourceBuilder, "PluginLocalizationConfig", define.Config)}}
 
                 internal class PluginLocalization: ILanguageSystem
                 {
@@ -419,6 +419,7 @@ namespace Elin.Plugin.Generator
                     {
                         General = new PluginLocalizationGeneral(this);
                         Formatter = new PluginLocalizationFormatter(this);
+                        Config = new PluginLocalizationConfig(this);
                     }
 
                     #region property
@@ -428,11 +429,18 @@ namespace Elin.Plugin.Generator
                           g.Remarks($"{GeneratorConstants.LocalizeFileName}: $.general")
                     ]))}}
                     public PluginLocalizationGeneral General { get; }
+
                     {{sourceBuilder.Xml.Build(g => g.Fragment([
                        g.Summary("フォーマット用のローカライズされた文字列を取得します。"),
                           g.Remarks($"{GeneratorConstants.LocalizeFileName}: $.format")
                     ]))}}
                     public PluginLocalizationFormatter Formatter { get; }
+
+                    {{sourceBuilder.Xml.Build(g => g.Fragment([
+                       g.Summary("設定用のローカライズされた文字列を取得します。"),
+                          g.Remarks($"{GeneratorConstants.LocalizeFileName}: $.config")
+                    ]))}}
+                    public PluginLocalizationConfig Config { get; }
 
                     #endregion
 

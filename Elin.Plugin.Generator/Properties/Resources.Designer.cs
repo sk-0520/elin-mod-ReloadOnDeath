@@ -61,6 +61,33 @@ namespace Elin.Plugin.Generator.Properties {
         }
         
         /// <summary>
+        ///   Language に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DocLangTransLanguage {
+            get {
+                return ResourceManager.GetString("DocLangTransLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Translation に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DocLangTransTranslation {
+            get {
+                return ResourceManager.GetString("DocLangTransTranslation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   &lt;Undefined&gt; に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DocLangTransUndefined {
+            get {
+                return ResourceManager.GetString("DocLangTransUndefined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Cannot apply attribute to a nested type に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string EPG001_A_Title {
@@ -255,6 +282,24 @@ namespace Elin.Plugin.Generator.Properties {
         internal static string EPG011_B_Message {
             get {
                 return ResourceManager.GetString("EPG011_B_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   JSON! に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string EPG012_A_Title {
+            get {
+                return ResourceManager.GetString("EPG012_A_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   JSON! に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string EPG012_B_Message {
+            get {
+                return ResourceManager.GetString("EPG012_B_Message", resourceCulture);
             }
         }
     }
