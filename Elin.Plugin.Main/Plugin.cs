@@ -23,8 +23,7 @@ namespace Elin.Plugin.Main
         /// <summary>
         /// 起動時のプラグイン独自処理。
         /// </summary>
-        /// <param name="harmony"></param>
-        private void AwakePlugin(Harmony harmony)
+        private void AwakePlugin()
         {
             var setting = Setting.Bind(Config, new Setting());
 
@@ -38,7 +37,7 @@ namespace Elin.Plugin.Main
                 var target = listMethod.MakeGenericMethod(typeof(string));
 
                 var prefix = new HarmonyMethod(typeof(DialogPatch), nameof(DialogPatch.ListPrefix));
-                harmony.Patch(target, prefix: prefix);
+                Harmony.Patch(target, prefix: prefix);
 
                 Instance = this;
                 if (0 < setting.RecordCount)
