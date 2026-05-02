@@ -98,15 +98,9 @@ namespace Elin.Plugin.Main.Models
                     break;
 
                 case MessageKind.MessageWithColor:
-                    var currentColor = Msg.currentColor;
-                    try
+                    using (ModHelper.Message.UseColor(messageItem.Color))
                     {
-                        Msg.SetColor(messageItem.Color);
                         Msg.SayRaw(messageItem.Message);
-                    }
-                    finally
-                    {
-                        Msg.SetColor(currentColor);
                     }
                     break;
             }
