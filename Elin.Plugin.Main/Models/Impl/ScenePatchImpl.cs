@@ -27,23 +27,20 @@ namespace Elin.Plugin.Main.Models.Impl
                             {
                                 EClass.core.WaitForEndOfFrame(() =>
                                 {
-                                    var currentColor = Msg.currentColor;
-                                    try
+                                    using (ModHelper.Message.UseColor(Color.magenta))
                                     {
-                                        Msg.SetColor(Color.magenta);
-                                        Msg.SayRaw(ModHelper.Lang.Formatter.FormatPreviousLog(range: ModHelper.Lang.General.PreviousLogRangeStart));
+                                        // 信仰中の文言と同じ行に出力されることを防ぐため改行しておく
+                                        // 信仰無しは、わからん、試してない
                                         Msg.NewLine();
-
-                                        Msg.SetColor(currentColor);
-                                        Plugin.Instance.MessageRecorder.Play();
-
-                                        Msg.SetColor(Color.magenta);
-                                        Msg.SayRaw(ModHelper.Lang.Formatter.FormatPreviousLog(range: ModHelper.Lang.General.PreviousLogRangeEnd));
-                                        Msg.NewLine();
+                                        ModHelper.Message.OutputLineWithoutContext(ModHelper.Lang.Formatter.FormatPreviousLog(range: ModHelper.Lang.General.PreviousLogRangeStart));
                                     }
-                                    finally
+
+                                    Msg.SetColor();
+                                    Plugin.Instance.MessageRecorder.Play();
+
+                                    using (ModHelper.Message.UseColor(Color.magenta))
                                     {
-                                        Msg.SetColor(currentColor);
+                                        ModHelper.Message.OutputLineWithoutContext(ModHelper.Lang.Formatter.FormatPreviousLog(range: ModHelper.Lang.General.PreviousLogRangeEnd));
                                     }
 
                                     Plugin.Instance.MessageRecorder.Clear();
