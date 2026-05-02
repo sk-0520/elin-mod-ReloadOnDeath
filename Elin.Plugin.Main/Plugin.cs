@@ -40,6 +40,8 @@ namespace Elin.Plugin.Main
                 Harmony.Patch(target, prefix: prefix);
 
                 Instance = this;
+                ModHelper.Logger.LogInfo($"{nameof(setting.RecordCount)}: {setting.RecordCount}");
+
                 if (0 < setting.RecordCount)
                 {
                     ModHelper.LogDev("patch enable");
@@ -48,7 +50,6 @@ namespace Elin.Plugin.Main
                 else
                 {
                     ModHelper.LogDev("patch disable");
-                    ModHelper.Logger.LogInfo($"{nameof(setting.RecordCount)}: {setting.RecordCount}");
                     // メッセージを取得しないのであればパッチ適用不要
                     // メモリ節約のための設定なので起動時のみの判定で良い
                     CallPatchAll = false;
