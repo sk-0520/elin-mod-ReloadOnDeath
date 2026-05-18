@@ -5,7 +5,7 @@
     "id": "sk.reloadondeath",
     "author": "sk",
     "loadPriority": 100,
-    "elinVersion": "0.23.295",
+    "elinVersion": "0.23.307",
     "description": [
       "どうせ君は死んだときにやり直す",
       "",
@@ -25,7 +25,7 @@
     ]
   },
   "mod": {
-    "version": "1.1.2",
+    "version": "1.1.3",
     "useDebugId": true,
     "log": "NUL"
   }

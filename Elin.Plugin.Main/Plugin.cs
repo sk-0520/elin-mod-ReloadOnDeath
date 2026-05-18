@@ -23,7 +23,7 @@ namespace Elin.Plugin.Main
         /// <summary>
         /// 起動時のプラグイン独自処理。
         /// </summary>
-        private void AwakePlugin()
+        protected override void AwakePlugin()
         {
             var setting = Setting.Bind(Config, new Setting());
 
@@ -61,14 +61,6 @@ namespace Elin.Plugin.Main
                 ModHelper.LogNotExpected($"Failed to find target method for patching: {nameof(Dialog.List)}");
                 CallPatchAll = false;
             }
-        }
-
-        /// <summary>
-        /// 終了時のプラグイン独自処理。
-        /// </summary>
-        private void OnDestroyPlugin()
-        {
-            //NOP
         }
 
         #endregion
